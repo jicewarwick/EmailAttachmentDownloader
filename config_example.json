@@ -1,0 +1,8 @@
+{
+    "login_info": {
+        "server": "imap.example.com",
+        "email_address": "user@example.com",
+        "password": "passwoard"
+    },
+    "storage_root": "."
+}
