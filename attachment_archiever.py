@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 
 class EmailAttachmentDownloader(object):
-    def __init__(self, server: str, email_address: str, password: str):
+    def __init__(self, server: str, email_address: str, password: str) -> None:
         super().__init__()
         self.server = server
         self.email_address = email_address
@@ -18,7 +18,7 @@ class EmailAttachmentDownloader(object):
         self.m = None
         self.logged_in = False
 
-    def login(self):
+    def login(self) -> None:
         self.m = imaplib.IMAP4_SSL(self.server)
         status, login_msg = self.m.login(self.email_address, self.password)
         if status.lower() == 'ok':
@@ -28,7 +28,7 @@ class EmailAttachmentDownloader(object):
         else:
             logging.error(f'Login ERROR! Error message: {login_msg}')
 
-    def logout(self):
+    def logout(self) -> None:
         self.m.close()
         self.m.logout()
         self.logged_in = False
@@ -37,7 +37,7 @@ class EmailAttachmentDownloader(object):
         self.login()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if self.logged_in:
             self.logout()
 
@@ -77,18 +77,16 @@ class EmailAttachmentDownloader(object):
         resp, items = self.m.search(None, "(ALL)")
         emails = items[0].split()
         logging.info(f'{len(emails)} emails found in the inbox')
-        # email_id = emails[27]
         with tqdm(emails) as progress_bar:
             for email_id in emails:
                 resp, data = self.m.fetch(email_id, "(RFC822)")
                 email_body = data[0][1]
                 mail = email.message_from_string(email_body.decode(encoding))
 
+                sent_datetime = self.parse_datetime(mail['Date'])
+                logging.debug(f'Dealing with email sent by {sender} on {sent_datetime}')
                 sender = self.parse_sender(mail['FROM'])
                 folder_name = os.path.join(output_dir, sender)
-                sent_datetime = self.parse_datetime(mail['Date'])
-
-                logging.debug(f'Dealing with email sent by {sender} on {sent_datetime}')
 
                 for part in mail.walk():
                     if part.get_content_maintype() == 'multipart':
@@ -116,7 +114,6 @@ class EmailAttachmentDownloader(object):
                     self.m.store(email_id, '+FLAGS', r'\Seen')
 
                 progress_bar.update()
-            progress_bar.set_description('')
 
 
 if __name__ == '__main__':
