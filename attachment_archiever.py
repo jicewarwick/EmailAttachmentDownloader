@@ -32,6 +32,7 @@ class EmailAttachmentDownloader(object):
         self.m.close()
         self.m.logout()
         self.logged_in = False
+        logging.info(f'{self.email_address} logged out!')
 
     def __enter__(self):
         self.login()
@@ -84,8 +85,8 @@ class EmailAttachmentDownloader(object):
                 mail = email.message_from_string(email_body.decode(encoding))
 
                 sent_datetime = self.parse_datetime(mail['Date'])
-                logging.debug(f'Dealing with email sent by {sender} on {sent_datetime}')
                 sender = self.parse_sender(mail['FROM'])
+                logging.debug(f'Dealing with email sent by {sender} on {sent_datetime}')
                 folder_name = os.path.join(output_dir, sender)
 
                 for part in mail.walk():
