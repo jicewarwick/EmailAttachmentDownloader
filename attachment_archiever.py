@@ -34,6 +34,9 @@ class EmailAttachmentDownloader(object):
         self.logged_in = False
         logging.info(f'{self.email_address} logged out!')
 
+    def delete_mail(self) -> None:
+        self.m.expunge()
+
     def __enter__(self):
         self.login()
         return self
@@ -70,7 +73,7 @@ class EmailAttachmentDownloader(object):
 
         return file_name
 
-    def download_all_attachments(self, output_dir: str, encoding: str = 'gb2312') -> None:
+    def download_all_attachments(self, output_dir: str) -> None:
         if not self.logged_in:
             logging.error('You MUST login first!')
             return
@@ -82,10 +85,24 @@ class EmailAttachmentDownloader(object):
             for email_id in emails:
                 resp, data = self.m.fetch(email_id, "(RFC822)")
                 email_body = data[0][1]
-                mail = email.message_from_string(email_body.decode(encoding))
+
+                # determine encoding the hard way
+                charset_beg = email_body.find(b'charset=')
+                charset_end = email_body[charset_beg:].find(b';')
+                if charset_end < 0:
+                    charset_end = 9999999999
+                charset_end2 = email_body[charset_beg:].find(b'\r')
+                charset_end3 = email_body[charset_beg:].find(b'\n')
+                charset = email_body[charset_beg+8:charset_beg + min(charset_end, charset_end2, charset_end3)]
+                charset = charset.decode().replace('"', '')
+
+                mail = email.message_from_string(email_body.decode(charset))
 
                 sent_datetime = self.parse_datetime(mail['Date'])
-                sender = self.parse_sender(mail['FROM'])
+                if mail['FROM']:
+                    sender = self.parse_sender(mail['FROM'])
+                else:
+                    continue
                 logging.debug(f'Dealing with email sent by {sender} on {sent_datetime}')
                 folder_name = os.path.join(output_dir, sender)
 
@@ -113,6 +130,7 @@ class EmailAttachmentDownloader(object):
                         f.write(part.get_payload(decode=True))
 
                     self.m.store(email_id, '+FLAGS', r'\Seen')
+                    self.m.store(email_id, '+FLAGS', r'\Deleted')
 
                 progress_bar.update()
 
@@ -122,6 +140,9 @@ if __name__ == '__main__':
 
     with open('config.json', 'r', encoding='utf-8') as f:
         config = json.load(f)
+
+    # attachment_downloader = EmailAttachmentDownloader(**config['login_info'])
+    # attachment_downloader.login()
 
     with EmailAttachmentDownloader(**config['login_info']) as attachment_downloader:
         attachment_downloader.download_all_attachments(config['storage_root'])
