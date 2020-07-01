@@ -88,13 +88,16 @@ class EmailAttachmentDownloader(object):
 
                 # determine encoding the hard way
                 charset_beg = email_body.find(b'charset=')
-                charset_end = email_body[charset_beg:].find(b';')
-                if charset_end < 0:
-                    charset_end = 9999999999
-                charset_end2 = email_body[charset_beg:].find(b'\r')
-                charset_end3 = email_body[charset_beg:].find(b'\n')
-                charset = email_body[charset_beg+8:charset_beg + min(charset_end, charset_end2, charset_end3)]
-                charset = charset.decode().replace('"', '')
+                if charset_beg > 0:
+                    charset_end = email_body[charset_beg:].find(b';')
+                    if charset_end < 0:
+                        charset_end = 9999999999
+                    charset_end2 = email_body[charset_beg:].find(b'\r')
+                    charset_end3 = email_body[charset_beg:].find(b'\n')
+                    charset = email_body[charset_beg+8:charset_beg + min(charset_end, charset_end2, charset_end3)]
+                    charset = charset.decode().replace('"', '')
+                else:
+                    charset = 'gb2312'
 
                 mail = email.message_from_string(email_body.decode(charset))
 
