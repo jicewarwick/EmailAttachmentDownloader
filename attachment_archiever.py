@@ -48,7 +48,7 @@ class EmailAttachmentDownloader(object):
     @staticmethod
     def parse_sender(sender: str) -> str:
         if ' ' in sender:
-            sender = sender.split(' ')[1]
+            sender = sender.split(' ')[-1]
         sender = sender.replace('<', '')
         sender = sender.replace('>', '')
         if '?' in sender:
